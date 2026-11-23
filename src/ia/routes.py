@@ -1,6 +1,6 @@
 from pathlib import Path
-from flask import Blueprint, render_template, request, jsonify, flash
-from flask_login import login_required
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask_login import current_user
 from joblib import load
 from src.models import Producto
 
@@ -20,9 +20,11 @@ if modelo_path.exists():
 
 
 @ia_bp.before_request
-@login_required
 def verificar_autenticacion():
-    pass
+    if not current_user.is_authenticated:
+        if request.path.startswith("/ia/api/") or request.is_json or request.headers.get("Accept") == "application/json":
+            return jsonify({"error": "No autorizado", "message": "Se requiere autenticación para operar con la API de IA"}), 401
+        return redirect(url_for("auth.login", next=request.url))
 
 
 def _calcular_recomendacion(dias, rotacion, stock):

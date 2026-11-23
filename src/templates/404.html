@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}404 — Recurso No Encontrado{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center py-12">
+    <div class="text-center max-w-md mx-auto bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+        <span class="text-5xl block mb-3">🔍</span>
+        <h1 class="text-2xl font-bold text-slate-800">Recurso No Encontrado</h1>
+        <p class="text-sm text-slate-500 mt-2">
+            El producto, proveedor o ruta que intentás consultar no existe o fue eliminado del sistema.
+        </p>
+        <div class="mt-6">
+            <a href="{{ url_for('inventario.listar_inventario') if current_user.is_authenticated else url_for('auth.login') }}"
+               class="inline-flex items-center px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm transition-colors">
+                ← Volver al Panel Principal
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

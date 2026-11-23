@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import login_required
+from flask_login import current_user
 from src.models import (
     Producto, Proveedor, bd,
     CATEGORIAS_VALIDAS, UNIDADES_VALIDAS
@@ -7,11 +7,13 @@ from src.models import (
 
 inventario_bp = Blueprint("inventario", __name__)
 
-# Middleware de seguridad: toda la sección de inventario requiere autenticación activa
+# Middleware de seguridad: distingue entre peticiones Web (redirect) y peticiones API REST (401 JSON)
 @inventario_bp.before_request
-@login_required
 def verificar_autenticacion():
-    pass
+    if not current_user.is_authenticated:
+        if request.path.startswith("/api/") or request.is_json:
+            return jsonify({"error": "No autorizado", "message": "Se requiere autenticación para operar con la API"}), 401
+        return redirect(url_for("auth.login", next=request.url))
 
 
 # ==============================================================================
@@ -291,7 +293,7 @@ def eliminar_proveedor(id_proveedor):
 
 
 # ==============================================================================
-# Endpoints API REST para Evaluación de Cátedra
+# Endpoints API REST para Evaluación de Cátedra (Visto en Clases 17 y 18)
 # ==============================================================================
 
 @inventario_bp.route("/api/productos", methods=["GET"])
@@ -302,11 +304,175 @@ def api_listar_productos():
 
 @inventario_bp.route("/api/productos/<int:id>", methods=["GET"])
 def api_detalle_producto(id):
-    producto = Producto.query.get_or_404(id)
+    producto = bd.session.get(Producto, id)
+    if not producto:
+        return jsonify({"error": "Producto no encontrado"}), 404
     return jsonify(producto.to_dict()), 200
+
+
+@inventario_bp.route("/api/productos", methods=["POST"])
+def api_crear_producto():
+    data = request.get_json() or {}
+    nombre = data.get("nombre", "").strip()
+    categoria = data.get("categoria", "").strip()
+    stock = data.get("stock_actual", 0.0)
+    unidad = data.get("unidad_medida", "kg").strip()
+    precio = data.get("precio_unitario", 0.0)
+    rotacion = data.get("rotacion_semanal_estimada", 2.0)
+    id_proveedor = data.get("id_proveedor")
+
+    if not nombre or not categoria:
+        return jsonify({"error": "Nombre y categoría son obligatorios"}), 400
+
+    if categoria not in CATEGORIAS_VALIDAS:
+        return jsonify({"error": f"Categoría inválida. Debe ser una de: {', '.join(CATEGORIAS_VALIDAS)}"}), 400
+
+    # RN-01: Unicidad de nombre en la misma categoría
+    if Producto.query.filter_by(nombre=nombre, categoria=categoria).first():
+        return jsonify({"error": f"Ya existe un producto con el nombre '{nombre}' en '{categoria}' (RN-01)"}), 409
+
+    try:
+        stock = float(stock)
+        precio = float(precio)
+        rotacion = float(rotacion)
+    except (ValueError, TypeError):
+        return jsonify({"error": "Valores numéricos de stock, precio o rotación inválidos"}), 400
+
+    # RN-02: Stock no negativo
+    if stock < 0:
+        return jsonify({"error": "El stock no puede ser negativo (RN-02)"}), 400
+
+    # RN-03: Precio positivo
+    if precio <= 0:
+        return jsonify({"error": "El precio debe ser mayor a 0 (RN-03)"}), 400
+
+    # RN-05: Opcionalidad de asociación (id_proveedor puede ser None)
+    if id_proveedor is not None:
+        try:
+            id_proveedor = int(id_proveedor)
+            if not bd.session.get(Proveedor, id_proveedor):
+                return jsonify({"error": "El proveedor indicado no existe"}), 404
+        except (ValueError, TypeError):
+            id_proveedor = None
+
+    nuevo = Producto(
+        nombre=nombre,
+        categoria=categoria,
+        stock_actual=stock,
+        unidad_medida=unidad,
+        precio_unitario=precio,
+        rotacion_semanal_estimada=rotacion,
+        id_proveedor=id_proveedor
+    )
+    bd.session.add(nuevo)
+    bd.session.commit()
+    return jsonify(nuevo.to_dict()), 201
+
+
+@inventario_bp.route("/api/productos/<int:id>", methods=["PUT"])
+def api_actualizar_producto(id):
+    producto = bd.session.get(Producto, id)
+    if not producto:
+        return jsonify({"error": "Producto no encontrado"}), 404
+
+    data = request.get_json() or {}
+    nombre = data.get("nombre", producto.nombre).strip()
+    categoria = data.get("categoria", producto.categoria).strip()
+
+    if categoria not in CATEGORIAS_VALIDAS:
+        return jsonify({"error": "Categoría inválida"}), 400
+
+    # RN-01: Unicidad excluyendo el producto actual
+    existente = Producto.query.filter(
+        Producto.nombre == nombre,
+        Producto.categoria == categoria,
+        Producto.id_producto != id
+    ).first()
+    if existente:
+        return jsonify({"error": f"Ya existe otro producto con el nombre '{nombre}' en '{categoria}' (RN-01)"}), 409
+
+    if "stock_actual" in data:
+        try:
+            stock = float(data["stock_actual"])
+            if stock < 0:
+                return jsonify({"error": "El stock no puede ser negativo (RN-02)"}), 400
+            producto.stock_actual = stock
+        except (ValueError, TypeError):
+            return jsonify({"error": "Stock inválido"}), 400
+
+    if "precio_unitario" in data:
+        try:
+            precio = float(data["precio_unitario"])
+            if precio <= 0:
+                return jsonify({"error": "El precio debe ser mayor a 0 (RN-03)"}), 400
+            producto.precio_unitario = precio
+        except (ValueError, TypeError):
+            return jsonify({"error": "Precio inválido"}), 400
+
+    producto.nombre = nombre
+    producto.categoria = categoria
+    if "unidad_medida" in data:
+        producto.unidad_medida = data["unidad_medida"]
+    if "rotacion_semanal_estimada" in data:
+        producto.rotacion_semanal_estimada = float(data["rotacion_semanal_estimada"])
+    if "id_proveedor" in data:
+        producto.id_proveedor = data["id_proveedor"]
+
+    bd.session.commit()
+    return jsonify(producto.to_dict()), 200
+
+
+@inventario_bp.route("/api/productos/<int:id>", methods=["DELETE"])
+def api_eliminar_producto(id):
+    producto = bd.session.get(Producto, id)
+    if not producto:
+        return jsonify({"error": "Producto no encontrado"}), 404
+
+    nombre = producto.nombre
+    bd.session.delete(producto)
+    bd.session.commit()
+    return jsonify({"message": f"Producto '{nombre}' eliminado exitosamente"}), 200
 
 
 @inventario_bp.route("/api/proveedores", methods=["GET"])
 def api_listar_proveedores():
     proveedores = Proveedor.query.all()
     return jsonify([p.to_dict() for p in proveedores]), 200
+
+
+@inventario_bp.route("/api/proveedores", methods=["POST"])
+def api_crear_proveedor():
+    data = request.get_json() or {}
+    nombre = data.get("nombre", "").strip()
+    if not nombre:
+        return jsonify({"error": "El nombre del proveedor es obligatorio"}), 400
+
+    nuevo = Proveedor(
+        nombre=nombre,
+        contacto=data.get("contacto"),
+        telefono=data.get("telefono"),
+        email=data.get("email"),
+        direccion=data.get("direccion")
+    )
+    bd.session.add(nuevo)
+    bd.session.commit()
+    return jsonify(nuevo.to_dict()), 201
+
+
+@inventario_bp.route("/api/proveedores/<int:id>", methods=["DELETE"])
+def api_eliminar_proveedor(id):
+    proveedor = bd.session.get(Proveedor, id)
+    if not proveedor:
+        return jsonify({"error": "Proveedor no encontrado"}), 404
+
+    # RN-04: No se puede borrar físicamente un proveedor con productos asociados
+    cant_productos = len(proveedor.productos)
+    if cant_productos > 0:
+        return jsonify({
+            "error": f"No se puede eliminar el proveedor '{proveedor.nombre}' porque tiene {cant_productos} producto(s) vinculado(s) (Regla RN-04)"
+        }), 409
+
+    nombre = proveedor.nombre
+    bd.session.delete(proveedor)
+    bd.session.commit()
+    return jsonify({"message": f"Proveedor '{nombre}' eliminado exitosamente"}), 200

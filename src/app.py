@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, url_for, render_template, request, jsonify
 from flask_login import LoginManager, current_user
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
@@ -70,6 +70,19 @@ def create_app():
         if current_user.is_authenticated:
             return redirect(url_for("inventario.listar_inventario"))
         return redirect(url_for("auth.login"))
+
+    # Manejo de Errores Amigable (Clases 17 y 18)
+    @app.errorhandler(404)
+    def pagina_no_encontrada(e):
+        if request.path.startswith("/api/") or request.is_json:
+            return jsonify({"error": "Recurso no encontrado", "codigo": 404}), 404
+        return render_template("404.html"), 404
+
+    @app.errorhandler(500)
+    def error_interno(e):
+        if request.path.startswith("/api/") or request.is_json:
+            return jsonify({"error": "Error interno del servidor", "codigo": 500}), 500
+        return render_template("404.html"), 500
 
     # Creación automática de tablas y datos iniciales de prueba (Seed)
     with app.app_context():

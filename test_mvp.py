@@ -144,6 +144,83 @@ class DieteticaMVPTestCase(unittest.TestCase):
             prov_check = bd.session.get(Proveedor, prov_id)
             self.assertIsNotNone(prov_check)
 
+    def test_10_opcionalidad_asociacion_rn05(self):
+        """Verifica que RN-05 permita dar de alta un producto sin proveedor asignado"""
+        self.client.post("/auth/login", data={"username_or_email": "admin", "password": "dietetica2026"})
+        resp = self.client.post("/inventario/nuevo", data={
+            "nombre": "Mijo Pelado Nacional",
+            "categoria": "Cereales",
+            "stock_actual": "12.0",
+            "unidad_medida": "kg",
+            "precio_unitario": "1800.0",
+            "rotacion_semanal_estimada": "2.0",
+            "id_proveedor": ""
+        }, follow_redirects=True)
+        self.assertEqual(resp.status_code, 200)
+        with app.app_context():
+            p = Producto.query.filter_by(nombre="Mijo Pelado Nacional").first()
+            self.assertIsNotNone(p)
+            self.assertIsNone(p.id_proveedor, "El producto debe persistirse con id_proveedor = None según RN-05")
+
+    def test_11_api_rest_crud_completo(self):
+        """Verifica el CRUD completo vía REST JSON (Clase 17: GET, POST, PUT, DELETE)"""
+        self.client.post("/auth/login", data={"username_or_email": "admin", "password": "dietetica2026"})
+        
+        # 1. POST /api/productos (crear)
+        resp_post = self.client.post("/api/productos", json={
+            "nombre": "Sésamo Negro Integral",
+            "categoria": "Semillas",
+            "stock_actual": 8.0,
+            "unidad_medida": "kg",
+            "precio_unitario": 3900.0,
+            "rotacion_semanal_estimada": 1.5
+        })
+        self.assertEqual(resp_post.status_code, 201)
+        prod_data = resp_post.get_json()
+        nuevo_id = prod_data["id_producto"]
+
+        # 2. GET /api/productos/<id> (detalle)
+        resp_get = self.client.get(f"/api/productos/{nuevo_id}")
+        self.assertEqual(resp_get.status_code, 200)
+        self.assertEqual(resp_get.get_json()["nombre"], "Sésamo Negro Integral")
+
+        # 3. PUT /api/productos/<id> (actualizar)
+        resp_put = self.client.put(f"/api/productos/{nuevo_id}", json={
+            "nombre": "Sésamo Negro Tostado",
+            "precio_unitario": 4100.0
+        })
+        self.assertEqual(resp_put.status_code, 200)
+        self.assertEqual(resp_put.get_json()["nombre"], "Sésamo Negro Tostado")
+
+        # 4. DELETE /api/productos/<id> (eliminar)
+        resp_del = self.client.delete(f"/api/productos/{nuevo_id}")
+        self.assertEqual(resp_del.status_code, 200)
+        with app.app_context():
+            self.assertIsNone(bd.session.get(Producto, nuevo_id))
+
+    def test_12_manejo_errores_404(self):
+        """Verifica que rutas o recursos inexistentes devuelvan 404 limpio en HTML y JSON, y 401 sin sesión"""
+        # 1. HTML 404 para ruta web inexistente
+        resp_web = self.client.get("/ruta-que-no-existe-en-la-app")
+        self.assertEqual(resp_web.status_code, 404)
+        self.assertIn(b"Recurso No Encontrado", resp_web.data)
+
+        # 2. JSON 404 para ruta de API no registrada en el servidor
+        resp_api_inexistente = self.client.get("/api/ruta_que_no_existe_en_ningun_lado")
+        self.assertEqual(resp_api_inexistente.status_code, 404)
+        self.assertIn("error", resp_api_inexistente.get_json())
+
+        # 3. API 401 si no hay sesión iniciada al acceder a un endpoint protegido
+        resp_unauth = self.client.get("/api/productos/99999")
+        self.assertEqual(resp_unauth.status_code, 401)
+        self.assertIn("error", resp_unauth.get_json())
+
+        # 4. JSON 404 autenticado para recurso con ID inexistente en la BD
+        self.client.post("/auth/login", data={"username_or_email": "admin", "password": "dietetica2026"})
+        resp_api = self.client.get("/api/productos/99999")
+        self.assertEqual(resp_api.status_code, 404)
+        self.assertIn("error", resp_api.get_json())
+
 
 if __name__ == "__main__":
     unittest.main()
