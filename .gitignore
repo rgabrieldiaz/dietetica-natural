@@ -1,0 +1,28 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+
+# Archivos de entorno y credenciales (REGLA MANDATORIA CÁTEDRA)
+.env
+*.env.local
+
+# Bases de datos locales
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# Python cache y compilados
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# IDEs y SO
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Inventario — Dietética Natural{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Encabezado y Acción Principal -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Control de Stock e Inventario</h1>
+            <p class="text-sm text-slate-500 mt-1">Supervisión en tiempo real de productos según especificaciones del SRS (RN-06)</p>
+        </div>
+        <div>
+            <a href="{{ url_for('inventario.nuevo_producto') }}"
+               class="inline-flex items-center px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm transition-colors">
+                <span class="mr-2">➕</span> Nuevo Producto
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarjetas de Resumen KPI -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Productos -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Productos</p>
+                <p class="text-2xl font-bold text-slate-800 mt-1">{{ total_productos }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-xl">📦</div>
+        </div>
+
+        <!-- Stock Bajo (RN-06) -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-amber-600">Stock Bajo (≤ 5)</p>
+                <p class="text-2xl font-bold text-amber-600 mt-1">{{ bajos_count }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-xl">⚠️</div>
+        </div>
+
+        <!-- Agotados (RN-06) -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-red-600">Agotados (0)</p>
+                <p class="text-2xl font-bold text-red-600 mt-1">{{ agotados_count }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-xl">🚨</div>
+        </div>
+
+        <!-- Valorización de Inventario -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Valor Inventario</p>
+                <p class="text-2xl font-bold text-emerald-700 mt-1">${{ "{:,.0f}".format(valor_inventario).replace(",", ".") }}</p>
+            </div>
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-xl">💰</div>
+        </div>
+    </div>
+
+    <!-- Barra de Búsqueda y Filtros -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <form method="GET" action="{{ url_for('inventario.listar_inventario') }}" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+            <!-- Input Búsqueda -->
+            <div class="md:col-span-5">
+                <input type="text" name="buscar" value="{{ busqueda }}" placeholder="Buscar producto por nombre..."
+                       class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+            </div>
+
+            <!-- Selector Categoría -->
+            <div class="md:col-span-3">
+                <select name="categoria" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                    <option value="">Todas las Categorías</option>
+                    {% for cat in categorias %}
+                    <option value="{{ cat }}" {% if categoria_filtro == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Selector Alerta Stock -->
+            <div class="md:col-span-2">
+                <select name="estado" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                    <option value="">Todos los Estados</option>
+                    <option value="NORMAL" {% if estado_filtro == 'NORMAL' %}selected{% endif %}>Normal</option>
+                    <option value="STOCK_BAJO" {% if estado_filtro == 'STOCK_BAJO' %}selected{% endif %}>Stock Bajo</option>
+                    <option value="AGOTADO" {% if estado_filtro == 'AGOTADO' %}selected{% endif %}>Agotado</option>
+                </select>
+            </div>
+
+            <!-- Botón Filtrar y Limpiar -->
+            <div class="md:col-span-2 flex space-x-2">
+                <button type="submit" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-2 px-3 rounded-xl text-sm font-medium transition-colors">
+                    Filtrar
+                </button>
+                <a href="{{ url_for('inventario.listar_inventario') }}" class="bg-slate-100 hover:bg-slate-200 text-slate-600 py-2 px-3 rounded-xl text-sm font-medium transition-colors">
+                    Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla Principal de Productos -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-semibold tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">ID</th>
+                        <th class="px-6 py-4">Producto</th>
+                        <th class="px-6 py-4">Categoría</th>
+                        <th class="px-6 py-4">Stock Físico</th>
+                        <th class="px-6 py-4">Estado (RN-06)</th>
+                        <th class="px-6 py-4">Precio Unitario</th>
+                        <th class="px-6 py-4 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for p in productos %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-mono text-xs text-slate-400">#{{ p.id_producto }}</td>
+                        <td class="px-6 py-4 font-medium text-slate-900">
+                            <div>{{ p.nombre }}</div>
+                            <div class="text-xs text-slate-400 font-normal mt-0.5">
+                                Proveedor: {{ p.proveedor.nombre if p.proveedor else "Sin asignar" }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                                {{ p.categoria }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-semibold text-slate-800">
+                            {{ p.stock_actual }} <span class="text-xs font-normal text-slate-500">{{ p.unidad_medida }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border {{ p.badge_color }}">
+                                {% if p.estado_stock == 'AGOTADO' %}🚨 AGOTADO
+                                {% elif p.estado_stock == 'STOCK_BAJO' %}⚠️ STOCK BAJO
+                                {% else %}✅ NORMAL{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-medium text-slate-900">
+                            ${{ "{:,.2f}".format(p.precio_unitario).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                        </td>
+                        <td class="px-6 py-4 text-right space-x-2">
+                            <!-- Predecir con Modelo de IA -->
+                            <a href="{{ url_for('ia.prediccion', producto_id=p.id_producto) }}"
+                               title="Calcular días de autonomía con IA"
+                               class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors">
+                                🤖 Predecir
+                            </a>
+
+                            <!-- Editar -->
+                            <a href="{{ url_for('inventario.editar_producto', id_producto=p.id_producto) }}"
+                               class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
+                                ✏️ Editar
+                            </a>
+
+                            <!-- Eliminar -->
+                            <form action="{{ url_for('inventario.eliminar_producto', id_producto=p.id_producto) }}" method="POST" class="inline"
+                                  onsubmit="return confirm('¿Seguro que deseás eliminar este producto del inventario?');">
+                                <button type="submit" class="inline-flex items-center px-2 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
+                                    🗑️
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                            <div class="text-3xl mb-2">🔍</div>
+                            <p class="font-medium text-slate-600">No se encontraron productos que coincidan con los filtros aplicados.</p>
+                            <p class="text-xs text-slate-400 mt-1">Probá cambiando los términos de búsqueda o limpiá los filtros.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

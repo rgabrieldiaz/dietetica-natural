@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Proveedores — Dietética Natural{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Encabezado -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Gestión de Proveedores</h1>
+            <p class="text-sm text-slate-500 mt-1">Directorio de distribuidores y productores para reposición de inventario</p>
+        </div>
+        <div>
+            <a href="{{ url_for('inventario.nuevo_proveedor') }}"
+               class="inline-flex items-center px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-sm transition-colors">
+                <span class="mr-2">➕</span> Nuevo Proveedor
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabla de Proveedores -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-semibold tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">ID</th>
+                        <th class="px-6 py-4">Proveedor / Razón Social</th>
+                        <th class="px-6 py-4">Contacto</th>
+                        <th class="px-6 py-4">Teléfono</th>
+                        <th class="px-6 py-4">Email</th>
+                        <th class="px-6 py-4">Productos</th>
+                        <th class="px-6 py-4 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for prov in proveedores %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-mono text-xs text-slate-400">#{{ prov.id_proveedor }}</td>
+                        <td class="px-6 py-4 font-semibold text-slate-900">
+                            <div>{{ prov.nombre }}</div>
+                            {% if prov.direccion %}
+                            <div class="text-xs font-normal text-slate-400 mt-0.5">📍 {{ prov.direccion }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-slate-600">
+                            {{ prov.contacto or "—" }}
+                        </td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-700">
+                            {{ prov.telefono or "—" }}
+                        </td>
+                        <td class="px-6 py-4 text-slate-600">
+                            {{ prov.email or "—" }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                {{ prov.productos|length }} ítems
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right space-x-2">
+                            <a href="{{ url_for('inventario.editar_proveedor', id_proveedor=prov.id_proveedor) }}"
+                               class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
+                                ✏️ Editar
+                            </a>
+                            <form action="{{ url_for('inventario.eliminar_proveedor', id_proveedor=prov.id_proveedor) }}" method="POST" class="inline"
+                                  onsubmit="return confirm('¿Seguro que deseás eliminar este proveedor? Los productos asociados quedarán sin proveedor asignado.');">
+                                <button type="submit" class="inline-flex items-center px-2 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
+                                    🗑️
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                            <div class="text-3xl mb-2">🚚</div>
+                            <p class="font-medium text-slate-600">No hay proveedores registrados aún.</p>
+                            <p class="text-xs text-slate-400 mt-1">Podés registrar el primero haciendo clic en "Nuevo Proveedor".</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

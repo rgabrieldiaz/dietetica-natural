@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dietética Natural — Sistema de Inventario{% endblock %}</title>
+    <!-- Tailwind CSS CDN para interfaz moderna, limpia y responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-full flex flex-col text-slate-800 antialiased">
+
+    <!-- Barra de Navegación Principal -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Marca / Logo -->
+                <div class="flex items-center space-x-3">
+                    <a href="{{ url_for('inventario.listar_inventario') if current_user.is_authenticated else url_for('auth.login') }}" class="flex items-center space-x-2">
+                        <span class="text-2xl">🌱</span>
+                        <div class="leading-tight">
+                            <span class="text-lg font-bold text-emerald-800 tracking-tight">Dietética Natural</span>
+                            <span class="hidden md:inline-block text-xs text-slate-400 font-medium ml-2 border-l border-slate-300 pl-2">Gestión de Inventario</span>
+                        </div>
+                    </a>
+
+                    <!-- Enlaces de Navegación (si está autenticado) -->
+                    {% if current_user.is_authenticated %}
+                    <div class="hidden sm:flex sm:space-x-4 ml-8">
+                        <a href="{{ url_for('inventario.listar_inventario') }}"
+                           class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if request.endpoint and 'inventario.listar_inventario' in request.endpoint %}bg-emerald-50 text-emerald-800{% else %}text-slate-600 hover:text-emerald-700 hover:bg-slate-50{% endif %}">
+                            📦 Inventario
+                        </a>
+                        <a href="{{ url_for('inventario.listar_proveedores') }}"
+                           class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if request.endpoint and 'proveedores' in request.endpoint %}bg-emerald-50 text-emerald-800{% else %}text-slate-600 hover:text-emerald-700 hover:bg-slate-50{% endif %}">
+                            🚚 Proveedores
+                        </a>
+                        <a href="{{ url_for('ia.prediccion') }}"
+                           class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if request.endpoint and 'ia.' in request.endpoint %}bg-emerald-50 text-emerald-800{% else %}text-slate-600 hover:text-emerald-700 hover:bg-slate-50{% endif %}">
+                            🤖 Predicción IA
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Perfil / Sesión -->
+                <div class="flex items-center space-x-3">
+                    {% if current_user.is_authenticated %}
+                    <div class="flex items-center space-x-3">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                            👤 {{ current_user.username }}
+                        </span>
+                        <a href="{{ url_for('auth.logout') }}"
+                           class="text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1.5 rounded-lg transition-colors">
+                            Cerrar Sesión
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="space-x-2">
+                        <a href="{{ url_for('auth.login') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-700 px-3 py-1.5">Ingresar</a>
+                        <a href="{{ url_for('auth.register') }}" class="text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg shadow-sm">Registrarse</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenedor de Alertas Flash -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="mb-6 space-y-2">
+                {% for category, message in messages %}
+                <div class="flex items-center p-4 rounded-xl border text-sm font-medium
+                    {% if category == 'danger' %} bg-red-50 text-red-800 border-red-200
+                    {% elif category == 'warning' %} bg-amber-50 text-amber-800 border-amber-200
+                    {% elif category == 'success' %} bg-emerald-50 text-emerald-800 border-emerald-200
+                    {% else %} bg-sky-50 text-sky-800 border-sky-200 {% endif %}">
+                    <span class="mr-2">
+                        {% if category == 'danger' %}⚠️
+                        {% elif category == 'warning' %}⚡
+                        {% elif category == 'success' %}✅
+                        {% else %}ℹ️{% endif %}
+                    </span>
+                    <span>{{ message }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Contenido Específico de cada Vista -->
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Pie de Página Institucional Da Vinci -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto text-center text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto px-4">
+            <p><strong>Análisis y Metodología de Sistemas</strong> — Escuela Da Vinci | Parcial 2 MVP</p>
+            <p class="mt-1">Alumnos: <strong>Ricardo Gabriel Díaz</strong> (Legajo 29135452) & <strong>Benítez</strong> | Docente: Lic. Diego Simonelli</p>
+        </div>
+    </footer>
+
+</body>
+</html>

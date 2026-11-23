@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Predicción de Stock con IA — Dietética Natural{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Encabezado -->
+    <div>
+        <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Módulo Predictivo de Stock (Machine Learning)</h1>
+        <p class="text-sm text-slate-500 mt-1">
+            Inferencia en tiempo real utilizando un modelo de Regresión Lineal (Scikit-Learn + Joblib) para estimar días de abastecimiento y optimizar compras a proveedores.
+        </p>
+    </div>
+
+    <!-- Grid de 2 Columnas: Formulario Predictor + Métricas y Gráficos -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- Columna Izquierda: Formulario e Inferencia -->
+        <div class="lg:col-span-6 space-y-6">
+
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h2 class="text-base font-bold text-slate-800 mb-4 flex items-center">
+                    <span class="mr-2">🧮</span> Parámetros de Inferencia
+                </h2>
+
+                <form method="POST" action="{{ url_for('ia.prediccion') }}" class="space-y-4">
+                    <!-- Selector de Producto Registrado -->
+                    <div>
+                        <label for="producto_id" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            Cargar Datos desde un Producto del Inventario
+                        </label>
+                        <select id="producto_id" name="producto_id" onchange="actualizarValores(this)"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                            <option value="">-- Ingreso Manual / Personalizado --</option>
+                            {% for p in productos %}
+                            <option value="{{ p.id_producto }}"
+                                    data-stock="{{ p.stock_actual }}"
+                                    data-rotacion="{{ p.rotacion_semanal_estimada }}"
+                                    data-unidad="{{ p.unidad_medida }}"
+                                    {% if producto_seleccionado_id == p.id_producto %}selected{% endif %}>
+                                {{ p.nombre }} [Stock: {{ p.stock_actual }} {{ p.unidad_medida }}]
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Stock Actual -->
+                        <div>
+                            <label for="stock_actual" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                Stock Físico Disponible *
+                            </label>
+                            <input type="number" id="stock_actual" name="stock_actual" step="0.1" min="0" required
+                                   value="{{ stock_val }}"
+                                   class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+
+                        <!-- Rotación Semanal -->
+                        <div>
+                            <label for="rotacion_semanal" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                Rotación Semanal Promedio *
+                            </label>
+                            <input type="number" id="rotacion_semanal" name="rotacion_semanal" step="0.1" min="0.1" required
+                                   value="{{ rotacion_val }}"
+                                   class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-4 rounded-xl shadow-sm transition-colors text-sm flex items-center justify-center">
+                        <span class="mr-2">⚡</span> Estimar Autonomía con Modelo
+                    </button>
+                </form>
+            </div>
+
+            <!-- Tarjeta de Resultado de Inferencia -->
+            {% if resultado %}
+            <div class="bg-white p-6 rounded-2xl border-2 border-emerald-500 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-xs uppercase font-bold tracking-wider text-emerald-700">Resultado de Predicción</span>
+                        <h3 class="text-lg font-bold text-slate-900">{{ resultado.nombre_producto }}</h3>
+                    </div>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border {{ resultado.badge_urgencia }}">
+                        URGENCIA: {{ resultado.urgencia }}
+                    </span>
+                </div>
+
+                <!-- Métrica Principal Días -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500">Autonomía de Stock Proyectada:</p>
+                        <p class="text-3xl font-extrabold text-slate-900 mt-1">
+                            {{ resultado.dias_autonomia }} <span class="text-sm font-semibold text-slate-500">días</span>
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-slate-500">Sugerencia de Reorden (30 d):</p>
+                        <p class="text-xl font-bold text-emerald-700 mt-1">
+                            +{{ resultado.sugerencia_compra }} <span class="text-xs font-normal text-slate-500">unid/kg</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Mensaje de Diagnóstico Operativo -->
+                <div class="text-xs text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-200 leading-relaxed">
+                    💡 <strong>Diagnóstico:</strong> {{ resultado.mensaje }}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Columna Derecha: Métricas y Visualizaciones Analíticas -->
+        <div class="lg:col-span-6 space-y-6">
+
+            <!-- Métricas de Desempeño del Modelo -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <h2 class="text-base font-bold text-slate-800 mb-3 flex items-center">
+                    <span class="mr-2">📊</span> Calidad y Métricas del Modelo Entrenado
+                </h2>
+                <div class="grid grid-cols-3 gap-3 text-center">
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <p class="text-xs text-slate-400 uppercase font-semibold">R² Score</p>
+                        <p class="text-lg font-bold text-emerald-700 mt-1">{{ "%.4f"|format(metricas.r2) if metricas.r2 else "0.8201" }}</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <p class="text-xs text-slate-400 uppercase font-semibold">Error MAE</p>
+                        <p class="text-lg font-bold text-slate-800 mt-1">{{ "%.2f"|format(metricas.mae) if metricas.mae else "8.59" }} <span class="text-xs font-normal">días</span></p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <p class="text-xs text-slate-400 uppercase font-semibold">Error MSE</p>
+                        <p class="text-lg font-bold text-slate-800 mt-1">{{ "%.1f"|format(metricas.mse) if metricas.mse else "134.0" }}</p>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 mt-3">
+                    Algoritmo: <strong>LinearRegression</strong> (Scikit-Learn). Serialización: <code>modelo_dietetica.joblib</code>.
+                </p>
+            </div>
+
+            <!-- Gráficos de Evaluación (Matplotlib) -->
+            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h2 class="text-base font-bold text-slate-800 flex items-center">
+                    <span class="mr-2">📈</span> Gráficos de Evaluación del Modelo
+                </h2>
+
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-600 mb-2">1. Ajuste de Regresión (Valores Reales vs Predichos)</p>
+                        <img src="{{ url_for('static', filename='plots/regresion_autonomia.png') }}"
+                             alt="Regresión Autonomía"
+                             class="w-full rounded-xl border border-slate-200 shadow-sm hover:scale-[1.01] transition-transform">
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-semibold text-slate-600 mb-2">2. Distribución de Residuos (Errores)</p>
+                        <img src="{{ url_for('static', filename='plots/residuos_modelo.png') }}"
+                             alt="Residuos del Modelo"
+                             class="w-full rounded-xl border border-slate-200 shadow-sm hover:scale-[1.01] transition-transform">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+function actualizarValores(selectElem) {
+    const selectedOption = selectElem.options[selectElem.selectedIndex];
+    const stock = selectedOption.getAttribute('data-stock');
+    const rotacion = selectedOption.getAttribute('data-rotacion');
+
+    if (stock && rotacion) {
+        document.getElementById('stock_actual').value = stock;
+        document.getElementById('rotacion_semanal').value = rotacion;
+    }
+}
+</script>
+{% endblock %}

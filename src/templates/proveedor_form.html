@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{% if proveedor %}Editar Proveedor{% else %}Nuevo Proveedor{% endif %} — Dietética Natural{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-4">
+    <!-- Navegación Retorno -->
+    <div class="mb-4">
+        <a href="{{ url_for('inventario.listar_proveedores') }}" class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center">
+            ← Volver a Proveedores
+        </a>
+    </div>
+
+    <!-- Tarjeta del Formulario -->
+    <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="mb-6">
+            <h1 class="text-xl font-bold text-slate-800">
+                {% if proveedor %}Editar Proveedor: {{ proveedor.nombre }}{% else %}Alta de Proveedor{% endif %}
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">
+                Registrá la información de contacto comercial y logística del distribuidor
+            </p>
+        </div>
+
+        <form method="POST"
+              action="{% if proveedor %}{{ url_for('inventario.editar_proveedor', id_proveedor=proveedor.id_proveedor) }}{% else %}{{ url_for('inventario.nuevo_proveedor') }}{% endif %}"
+              class="space-y-4">
+
+            <!-- Nombre de la Empresa -->
+            <div>
+                <label for="nombre" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Razón Social / Nombre Comercial *
+                </label>
+                <input type="text" id="nombre" name="nombre" required
+                       value="{{ proveedor.nombre if proveedor else '' }}"
+                       placeholder="Ej. Molinos del Valle S.A."
+                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Persona de Contacto -->
+                <div>
+                    <label for="contacto" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Persona de Contacto
+                    </label>
+                    <input type="text" id="contacto" name="contacto"
+                           value="{{ proveedor.contacto if proveedor and proveedor.contacto else '' }}"
+                           placeholder="Ej. Mariana Gómez"
+                           class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+
+                <!-- Teléfono -->
+                <div>
+                    <label for="telefono" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Teléfono / WhatsApp
+                    </label>
+                    <input type="text" id="telefono" name="telefono"
+                           value="{{ proveedor.telefono if proveedor and proveedor.telefono else '' }}"
+                           placeholder="11-4523-8899"
+                           class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Correo Electrónico
+                    </label>
+                    <input type="email" id="email" name="email"
+                           value="{{ proveedor.email if proveedor and proveedor.email else '' }}"
+                           placeholder="pedidos@empresa.com"
+                           class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+
+                <!-- Dirección -->
+                <div>
+                    <label for="direccion" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Dirección / Depósito
+                    </label>
+                    <input type="text" id="direccion" name="direccion"
+                           value="{{ proveedor.direccion if proveedor and proveedor.direccion else '' }}"
+                           placeholder="Av. Mitre 1420, Avellaneda"
+                           class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <a href="{{ url_for('inventario.listar_proveedores') }}"
+                   class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit"
+                        class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium shadow-sm transition-colors">
+                    {% if proveedor %}Guardar Cambios{% else %}Registrar Proveedor{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
