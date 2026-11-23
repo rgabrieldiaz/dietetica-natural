@@ -107,6 +107,22 @@
                 <div class="text-xs text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-200 leading-relaxed">
                     💡 <strong>Diagnóstico:</strong> {{ resultado.mensaje }}
                 </div>
+
+                {% if resultado.proveedor_nombre %}
+                <!-- Vinculación con Proveedor (SRS D2) -->
+                <div class="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-800">Proveedor Asignado para Reposición</p>
+                        <p class="text-sm font-bold text-slate-800 mt-0.5">🚚 {{ resultado.proveedor_nombre }}</p>
+                    </div>
+                    {% if resultado.proveedor_telefono %}
+                    <a href="tel:{{ resultado.proveedor_telefono }}"
+                       class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors">
+                        📞 Contactar ({{ resultado.proveedor_telefono }})
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
             {% endif %}
 

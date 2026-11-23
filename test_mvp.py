@@ -128,6 +128,22 @@ class DieteticaMVPTestCase(unittest.TestCase):
         self.assertIn("urgencia", data)
         self.assertGreater(data["dias_autonomia_predichos"], 0)
 
+    def test_09_integridad_proveedor_rn04(self):
+        """Verifica que RN-04 impida eliminar un proveedor con productos vinculados"""
+        self.client.post("/auth/login", data={"username_or_email": "admin", "password": "dietetica2026"})
+        with app.app_context():
+            prov = Proveedor.query.filter(Proveedor.productos.any()).first()
+            self.assertIsNotNone(prov, "Debe existir al menos un proveedor con productos")
+            prov_id = prov.id_proveedor
+
+        response = self.client.post(f"/proveedores/eliminar/{prov_id}", follow_redirects=True)
+        self.assertIn(b"RN-04", response.data)
+
+        # Comprobar que no se haya borrado de la base de datos
+        with app.app_context():
+            prov_check = bd.session.get(Proveedor, prov_id)
+            self.assertIsNotNone(prov_check)
+
 
 if __name__ == "__main__":
     unittest.main()

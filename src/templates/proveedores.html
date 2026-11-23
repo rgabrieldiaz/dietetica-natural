@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Proveedores — Dietética Natural{% endblock %}
+{% block title %}Directorio de Proveedores — Dietética Natural{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -8,8 +8,10 @@
     <!-- Encabezado -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Gestión de Proveedores</h1>
-            <p class="text-sm text-slate-500 mt-1">Directorio de distribuidores y productores para reposición de inventario</p>
+            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Directorio de Proveedores</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                Gestión de distribuidores mayoristas y trazabilidad de mercadería suministrada (SRS D2 / RN-04)
+            </p>
         </div>
         <div>
             <a href="{{ url_for('inventario.nuevo_proveedor') }}"
@@ -19,70 +21,82 @@
         </div>
     </div>
 
-    <!-- Tabla de Proveedores -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
-                <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-semibold tracking-wider">
-                    <tr>
-                        <th class="px-6 py-4">ID</th>
-                        <th class="px-6 py-4">Proveedor / Razón Social</th>
-                        <th class="px-6 py-4">Contacto</th>
-                        <th class="px-6 py-4">Teléfono</th>
-                        <th class="px-6 py-4">Email</th>
-                        <th class="px-6 py-4">Productos</th>
-                        <th class="px-6 py-4 text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    {% for prov in proveedores %}
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-6 py-4 font-mono text-xs text-slate-400">#{{ prov.id_proveedor }}</td>
-                        <td class="px-6 py-4 font-semibold text-slate-900">
-                            <div>{{ prov.nombre }}</div>
-                            {% if prov.direccion %}
-                            <div class="text-xs font-normal text-slate-400 mt-0.5">📍 {{ prov.direccion }}</div>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 text-slate-600">
-                            {{ prov.contacto or "—" }}
-                        </td>
-                        <td class="px-6 py-4 font-mono text-xs text-slate-700">
-                            {{ prov.telefono or "—" }}
-                        </td>
-                        <td class="px-6 py-4 text-slate-600">
-                            {{ prov.email or "—" }}
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                {{ prov.productos|length }} ítems
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-right space-x-2">
-                            <a href="{{ url_for('inventario.editar_proveedor', id_proveedor=prov.id_proveedor) }}"
-                               class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
-                                ✏️ Editar
-                            </a>
-                            <form action="{{ url_for('inventario.eliminar_proveedor', id_proveedor=prov.id_proveedor) }}" method="POST" class="inline"
-                                  onsubmit="return confirm('¿Seguro que deseás eliminar este proveedor? Los productos asociados quedarán sin proveedor asignado.');">
-                                <button type="submit" class="inline-flex items-center px-2 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
-                                    🗑️
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-slate-400">
-                            <div class="text-3xl mb-2">🚚</div>
-                            <p class="font-medium text-slate-600">No hay proveedores registrados aún.</p>
-                            <p class="text-xs text-slate-400 mt-1">Podés registrar el primero haciendo clic en "Nuevo Proveedor".</p>
-                        </td>
-                    </tr>
+    <!-- Directorio Detallado de Proveedores -->
+    <div class="grid grid-cols-1 gap-4">
+        {% for prov in proveedores %}
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-mono text-slate-400">#{{ prov.id_proveedor }}</span>
+                        <h2 class="text-lg font-bold text-slate-900">{{ prov.nombre }}</h2>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                            {{ prov.productos|length }} productos suministrados
+                        </span>
+                    </div>
+                    {% if prov.direccion %}
+                    <p class="text-xs text-slate-500 mt-1">📍 {{ prov.direccion }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Acciones y Contacto Rápido -->
+                <div class="flex items-center space-x-2">
+                    {% if prov.telefono %}
+                    <a href="tel:{{ prov.telefono }}"
+                       class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                       title="Llamar o contactar proveedor">
+                        📞 {{ prov.telefono }}
+                    </a>
+                    {% endif %}
+
+                    <a href="{{ url_for('inventario.editar_proveedor', id_proveedor=prov.id_proveedor) }}"
+                       class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
+                        ✏️ Editar
+                    </a>
+
+                    <form action="{{ url_for('inventario.eliminar_proveedor', id_proveedor=prov.id_proveedor) }}" method="POST" class="inline"
+                          onsubmit="return confirm('¿Seguro que deseás eliminar este proveedor? Si posee productos asociados, la regla RN-04 impedirá el borrado.');">
+                        <button type="submit"
+                                class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                title="Eliminar proveedor">
+                            🗑️
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Ficha de Productos Suministrados por este Proveedor -->
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Mercadería que abastece este proveedor:</p>
+                {% if prov.productos %}
+                <div class="flex flex-wrap gap-2">
+                    {% for p in prov.productos %}
+                    <div class="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-50 border border-slate-200 space-x-2">
+                        <span class="text-slate-800 font-semibold">{{ p.nombre }}</span>
+                        <span class="text-slate-400">({{ p.categoria }})</span>
+                        <span class="px-2 py-0.5 rounded-md text-[11px] font-bold border {{ p.badge_color }}">
+                            {{ p.stock_actual }} {{ p.unidad_medida }}
+                        </span>
+                        {% if p.estado_stock != 'NORMAL' %}
+                        <a href="{{ url_for('ia.prediccion', producto_id=p.id_producto) }}" class="text-emerald-700 hover:underline text-[11px] font-semibold">
+                            Reordenar →
+                        </a>
+                        {% endif %}
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+                {% else %}
+                <p class="text-xs text-slate-400 italic">No tiene productos asociados actualmente en inventario (puede eliminarse sin conflicto con RN-04).</p>
+                {% endif %}
+            </div>
         </div>
+        {% else %}
+        <div class="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-400">
+            <div class="text-4xl mb-2">🚚</div>
+            <p class="font-medium text-slate-600">No hay proveedores registrados aún.</p>
+            <p class="text-xs text-slate-400 mt-1">Registrá el primer distribuidor haciendo clic en "Nuevo Proveedor".</p>
+        </div>
+        {% endfor %}
     </div>
 
 </div>

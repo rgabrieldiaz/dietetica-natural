@@ -120,8 +120,15 @@
                         <td class="px-6 py-4 font-mono text-xs text-slate-400">#{{ p.id_producto }}</td>
                         <td class="px-6 py-4 font-medium text-slate-900">
                             <div>{{ p.nombre }}</div>
-                            <div class="text-xs text-slate-400 font-normal mt-0.5">
-                                Proveedor: {{ p.proveedor.nombre if p.proveedor else "Sin asignar" }}
+                            <div class="text-xs text-slate-500 font-normal mt-0.5 flex items-center space-x-1">
+                                {% if p.proveedor %}
+                                <span>🚚 {{ p.proveedor.nombre }}</span>
+                                {% if p.proveedor.telefono %}
+                                <a href="tel:{{ p.proveedor.telefono }}" class="text-emerald-700 hover:underline font-mono text-[11px]" title="Teléfono para reposición">({{ p.proveedor.telefono }})</a>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-slate-400 italic">Sin proveedor</span>
+                                {% endif %}
                             </div>
                         </td>
                         <td class="px-6 py-4">
@@ -138,6 +145,11 @@
                                 {% elif p.estado_stock == 'STOCK_BAJO' %}⚠️ STOCK BAJO
                                 {% else %}✅ NORMAL{% endif %}
                             </span>
+                            {% if p.estado_stock != 'NORMAL' and p.proveedor and p.proveedor.telefono %}
+                            <a href="tel:{{ p.proveedor.telefono }}" class="block text-[11px] font-medium text-emerald-700 hover:underline mt-1">
+                                📞 Pedir reposición
+                            </a>
+                            {% endif %}
                         </td>
                         <td class="px-6 py-4 font-medium text-slate-900">
                             ${{ "{:,.2f}".format(p.precio_unitario).replace(",", "X").replace(".", ",").replace("X", ".") }}

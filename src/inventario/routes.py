@@ -271,9 +271,18 @@ def editar_proveedor(id_proveedor):
 @inventario_bp.route("/proveedores/eliminar/<int:id_proveedor>", methods=["POST"])
 def eliminar_proveedor(id_proveedor):
     proveedor = Proveedor.query.get_or_404(id_proveedor)
-    # Si tiene productos asignados, desasociarlos para evitar inconsistencias
-    for prod in proveedor.productos:
-        prod.id_proveedor = None
+    
+    # RN-04 (Protección de Integridad en Bajas):
+    # No se puede borrar físicamente un proveedor si posee productos vinculados en el inventario.
+    cant_productos = len(proveedor.productos)
+    if cant_productos > 0:
+        flash(
+            f"No se puede eliminar al proveedor '{proveedor.nombre}' porque tiene {cant_productos} "
+            f"producto(s) vinculado(s) en inventario (Regla RN-04). Reasigne o elimine los productos primero.",
+            "danger"
+        )
+        return redirect(url_for("inventario.listar_proveedores"))
+
     nombre = proveedor.nombre
     bd.session.delete(proveedor)
     bd.session.commit()

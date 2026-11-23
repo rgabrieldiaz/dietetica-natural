@@ -65,12 +65,14 @@ def prediccion():
     rotacion_val = 2.0
     nombre_prod = "Cálculo Personalizado"
 
+    proveedor_obj = None
     if producto_seleccionado_id:
         prod = Producto.query.get(producto_seleccionado_id)
         if prod:
             stock_val = prod.stock_actual
             rotacion_val = prod.rotacion_semanal_estimada
             nombre_prod = f"{prod.nombre} ({prod.categoria})"
+            proveedor_obj = prod.proveedor
 
     if request.method == "POST":
         try:
@@ -82,6 +84,7 @@ def prediccion():
                 prod_obj = Producto.query.get(int(prod_id_form))
                 if prod_obj:
                     nombre_prod = f"{prod_obj.nombre} ({prod_obj.categoria})"
+                    proveedor_obj = prod_obj.proveedor
 
             if rotacion_val <= 0:
                 flash("La rotación semanal estimada debe ser mayor a 0.", "warning")
@@ -99,6 +102,8 @@ def prediccion():
                     "stock_actual": stock_val,
                     "rotacion_semanal": rotacion_val,
                     "dias_autonomia": pred_dias,
+                    "proveedor_nombre": proveedor_obj.nombre if proveedor_obj else None,
+                    "proveedor_telefono": proveedor_obj.telefono if proveedor_obj else None,
                     **recomendacion
                 }
         except ValueError:
