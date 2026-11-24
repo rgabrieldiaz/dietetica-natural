@@ -2,7 +2,7 @@
 Script de Entrenamiento del Modelo de Machine Learning
 Materia: Análisis y Metodología de Sistemas (S0D41) - Escuela Da Vinci
 Profesor: Lic. Diego Simonelli
-Alumnos: Ricardo Gabriel Díaz (Legajo 29135452) y Benítez
+Alumnos: Ricardo Gabriel Díaz y Benítez
 
 Modelo: Regresión Lineal para Estimación de Días de Autonomía de Stock
 Permite a la Dietética predecir cuántos días restan antes del desabastecimiento

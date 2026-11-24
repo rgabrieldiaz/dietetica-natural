@@ -4,7 +4,7 @@
 **Institución:** Escuela Da Vinci — Carrera de Analista de Sistemas  
 **Docente:** Lic. Diego Simonelli  
 **Entrega:** Segundo Parcial — MVP Funcional  
-**Alumnos:** Ricardo Gabriel Díaz (Legajo 29135452) y Benítez  
+**Alumnos:** Ricardo Gabriel Díaz y Benítez  
 **Aplicación en Producción (Render):** [https://dietetica-natural-mvp.onrender.com](https://dietetica-natural-mvp.onrender.com)  
 **Repositorio Oficial:** [https://github.com/rgabrieldiaz/dietetica-natural](https://github.com/rgabrieldiaz/dietetica-natural)  
 
